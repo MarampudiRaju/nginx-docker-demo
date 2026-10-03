@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RailExpress - Modern Train Ticket Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0a3751',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-ticket, #printable-ticket * { visibility: visible; }
+            #printable-ticket { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col justify-between">
+
+    <header class="bg-brand-900 text-white shadow-lg sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="app.navigateTo('search')">
+                    <div class="bg-brand-500 p-2 rounded-lg text-white">
+                        <i class="fa-solid fa-train-subway text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold tracking-tight text-white">RailExpress</span>
+                        <span class="text-xs block text-brand-100 -mt-1 font-medium">Fast & Reliable Travel</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Steps Indicator -->
+                <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold">
+                    <div id="step-nav-search" class="flex items-center px-3 py-1.5 rounded-full bg-brand-800 text-brand-100">
+                        <span class="w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center mr-1.5 text-[10px]">1</span>
+                        <span>Search</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 text-[10px] mx-1"></i>
+                    <div id="step-nav-results" class="flex items-center px-3 py-1.5 rounded-full text-slate-400">
+                        <span class="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center mr-1.5 text-[10px]">2</span>
+                        <span>Trains</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 text-[10px] mx-1"></i>
+                    <div id="step-nav-passengers" class="flex items-center px-3 py-1.5 rounded-full text-slate-400">
+                        <span class="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center mr-1.5 text-[10px]">3</span>
+                        <span>Seats & Details</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 text-[10px] mx-1"></i>
+                    <div id="step-nav-payment" class="flex items-center px-3 py-1.5 rounded-full text-slate-400">
+                        <span class="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center mr-1.5 text-[10px]">4</span>
+                        <span>Payment</span>
+                    </div>
+                </nav>
+
+                <div class="flex items-center space-x-3">
+                    <button class="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition">
+                        <i class="fa-regular fa-circle-question mr-1"></i> Help
+                    </button>
+                    <div class="h-4 w-px bg-slate-700"></div>
+                    <button class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- SECTION 1: SEARCH BAR & HERO -->
+        <section id="section-search" class="space-y-6">
+            <div class="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 rounded-2xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl text-white pointer-events-none">
+                    <i class="fa-solid fa-train"></i>
+                </div>
+                
+                <div class="relative z-10 max-w-2xl mb-8">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2">Find & Book Your Next Train Journey</h1>
+                    <p class="text-brand-100 text-sm sm:text-base">Instant reservation, live seat availability, and guaranteed zero extra cancellation fees.</p>
+                </div>
+
+                <!-- Booking Form Card -->
+                <div class="bg-white rounded-xl p-5 sm:p-6 text-slate-800 shadow-2xl relative z-10">
+                    <form id="search-form" onsubmit="app.handleSearch(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                            
+                            <!-- Origin -->
+                            <div class="md:col-span-3 relative">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                    <i class="fa-solid fa-location-dot text-brand-600 mr-1"></i> From Station
+                                </label>
+                                <select id="search-origin" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                                    <option value="NDLS">New Delhi (NDLS)</option>
+                                    <option value="BCT">Mumbai Central (BCT)</option>
+                                    <option value="SBC">Bengaluru City (SBC)</option>
+                                    <option value="MAS">Chennai Central (MAS)</option>
+                                    <option value="HWH">Howrah Kolkata (HWH)</option>
+                                </select>
+                            </div>
+
+                            <!-- Swap Button -->
+                            <div class="md:col-span-1 flex justify-center -my-2 md:my-0">
+                                <button type="button" onclick="app.swapStations()" class="bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 p-2.5 rounded-full border border-slate-200 transition shadow-sm" title="Swap stations">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+
+                            <!-- Destination -->
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                    <i class="fa-solid fa-location-crosshairs text-brand-600 mr-1"></i> To Station
+                                </label>
+                                <select id="search-destination" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                                    <option value="BCT" selected>Mumbai Central (BCT)</option>
+                                    <option value="NDLS">New Delhi (NDLS)</option>
+                                    <option value="SBC">Bengaluru City (SBC)</option>
+                                    <option value="MAS">Chennai Central (MAS)</option>
+                                    <option value="HWH">Howrah Kolkata (HWH)</option>
+                                </select>
+                            </div>
+
+                            <!-- Departure Date -->
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                    <i class="fa-regular fa-calendar-days text-brand-600 mr-1"></i> Departure Date
+                                </label>
+                                <input type="date" id="search-date" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                            </div>
+
+                            <!-- Search Button -->
+                            <div class="md:col-span-2 flex items-end">
+                                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold p-2.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <span>Search</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Secondary Filters Options -->
+                        <div class="pt-3 border-t border-slate-100 flex flex-wrap gap-4 items-center text-xs text-slate-600">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-medium">Class:</span>
+                                <select id="search-class" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 focus:ring-1 focus:ring-brand-500">
+                                    <option value="ALL">All Classes</option>
+                                    <option value="1A">AC First Class (1A)</option>
+                                    <option value="2A">AC 2-Tier (2A)</option>
+                                    <option value="3A">AC 3-Tier (3A)</option>
+                                    <option value="SL">Sleeper (SL)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="cursor-pointer flex items-center space-x-1.5">
+                                    <input type="checkbox" id="search-flexible" class="rounded text-brand-600 focus:ring-brand-500">
+                                    <span>Flexible with dates</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <label class="cursor-pointer flex items-center space-x-1.5">
+                                    <input type="checkbox" id="search-tatkal" class="rounded text-brand-600 focus:ring-brand-500">
+                                    <span>Tatkal / Premium Quota</span>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Promotional Features Banner -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-lg">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold">100% Refund Guarantee</h4>
+                        <p class="text-xs text-slate-500">Instant refund on trip cancellations</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-lg text-lg">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold">Live PNR Tracking</h4>
+                        <p class="text-xs text-slate-500">Get real-time SMS & WhatsApp alerts</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                    <div class="p-3 bg-brand-50 text-brand-600 rounded-lg text-lg">
+                        <i class="fa-solid fa-headset"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold">24/7 Rail Support</h4>
+                        <p class="text-xs text-slate-500">Dedicated helpline for all passengers</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: TRAIN SEARCH RESULTS -->
+        <section id="section-results" class="hidden space-y-4">
+            
+            <!-- Result Header Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-3">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span id="res-origin-name">NDLS</span>
+                        <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
+                        <span id="res-dest-name">BCT</span>
+                    </h2>
+                    <p class="text-xs text-slate-500"><span id="res-date-display">Tomorrow</span> • <span id="res-count">0</span> Trains Available</p>
+                </div>
+                <div class="flex items-center space-x-2 text-xs">
+                    <button onclick="app.navigateTo('search')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium transition">
+                        <i class="fa-solid fa-pen mr-1"></i> Modify Search
+                    </button>
+                    <select id="sort-filter" onchange="app.sortTrains(this.value)" class="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-medium border-none focus:ring-2 focus:ring-brand-500">
+                        <option value="departure">Sort by: Departure Time</option>
+                        <option value="duration">Sort by: Duration</option>
+                        <option value="price">Sort by: Price (Low to High)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Trains List Container -->
+            <div id="trains-container" class="space-y-4">
+                <!-- Dynamically Populated Train Cards -->
+            </div>
+        </section>
+
+        <!-- SECTION 3: PASSENGER & SEAT SELECTION -->
+        <section id="section-passengers" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left Column: Forms -->
+                <div class="lg:col-span-8 space-y-6">
+                    
+                    <!-- Selected Train Summary Card -->
+                    <div class="bg-brand-900 text-white p-5 rounded-xl shadow-md flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span id="summary-train-number" class="bg-brand-700 text-brand-100 text-xs px-2 py-0.5 rounded font-mono font-bold">#12952</span>
+                                <h3 id="summary-train-name" class="text-lg font-bold">Rajdhani Express</h3>
+                            </div>
+                            <p class="text-xs text-brand-200 mt-1">
+                                <span id="summary-route">NDLS (16:55) → BCT (08:35)</span> | Class: <span id="summary-class" class="font-bold text-amber-400">3A</span>
+                            </p>
+                        </div>
+                        <button onclick="app.navigateTo('results')" class="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg border border-white/20 transition">
+                            Change
+                        </button>
+                    </div>
+
+                    <!-- Seat Layout & Selection Panel -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
+                                <i class="fa-solid fa-chair text-brand-600 mr-2"></i> Select Seats & Berth Preference
+                            </h3>
+                            <div class="flex space-x-4 text-xs font-medium">
+                                <span class="flex items-center"><span class="w-3 h-3 bg-slate-200 rounded mr-1"></span> Available</span>
+                                <span class="flex items-center"><span class="w-3 h-3 bg-brand-600 rounded mr-1"></span> Selected</span>
+                                <span class="flex items-center"><span class="w-3 h-3 bg-slate-400 rounded mr-1"></span> Occupied</span>
+                            </div>
+                        </div>
+
+                        <!-- Coach Visualization -->
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div class="text-center text-xs font-semibold text-slate-500 mb-3">COACH B4 - AC 3-TIER MAP</div>
+                            <div id="seat-grid" class="grid grid-cols-6 sm:grid-cols-10 gap-2 justify-center">
+                                <!-- Dynamic Seats Generated Here -->
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-slate-500 italic">* Click on available seats to allocate them to your passengers.</p>
+                    </div>
+
+                    <!-- Passenger Details Input Card -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
+                                <i class="fa-solid fa-users text-brand-600 mr-2"></i> Passenger Information
+                            </h3>
+                            <button type="button" onclick="app.addPassenger()" class="text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold px-3 py-1.5 rounded-lg border border-brand-200 transition">
+                                <i class="fa-solid fa-plus mr-1"></i> Add Passenger
+                            </button>
+                        </div>
+
+                        <form id="passengers-form" class="space-y-4">
+                            <div id="passengers-list" class="space-y-3">
+                                <!-- Dynamic Passenger Input Rows -->
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Contact Details Form -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+                        <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center border-b pb-2">
+                            <i class="fa-solid fa-address-book text-brand-600 mr-2"></i> Ticket Delivery Contact
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Email ID</label>
+                                <input type="email" id="contact-email" required value="traveller@example.com" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:ring-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Mobile Number</label>
+                                <input type="tel" id="contact-phone" required value="+91 9876543210" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:ring-brand-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Fare Summary -->
+                <div class="lg:col-span-4 space-y-4">
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4 sticky top-20">
+                        <h3 class="font-bold text-slate-900 border-b pb-3 text-base">Fare Summary</h3>
+
+                        <div class="space-y-2.5 text-sm">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Base Fare (<span id="fare-count">1</span> Passenger)</span>
+                                <span class="font-semibold text-slate-800">₹<span id="fare-base">0</span></span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Reservation Fee & GST (5%)</span>
+                                <span class="font-semibold text-slate-800">₹<span id="fare-tax">0</span></span>
+                            </div>
+                            <div id="discount-row" class="flex justify-between text-emerald-600 hidden">
+                                <span>Promo Discount</span>
+                                <span class="font-semibold">-₹<span id="fare-discount">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Discount Code Input -->
+                        <div class="pt-2 border-t">
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Have a Promo Code?</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="promo-input" placeholder="Try RAIL20" class="uppercase flex-grow bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-brand-500">
+                                <button type="button" onclick="app.applyPromo()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition">
+                                    Apply
+                                </button>
+                            </div>
+                            <p id="promo-msg" class="text-[11px] mt-1 hidden"></p>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-900">Total Amount</span>
+                                <span class="text-xl font-extrabold text-brand-700">₹<span id="fare-total">0</span></span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Includes all taxes & government fees</p>
+                        </div>
+
+                        <button onclick="app.proceedToPayment()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-lg shadow-md transition flex items-center justify-center space-x-2">
+                            <span>Proceed to Payment</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: PAYMENT SCREEN -->
+        <section id="section-payment" class="hidden space-y-6 max-w-2xl mx-auto">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-md p-6 space-y-6">
+                <div class="border-b pb-4">
+                    <h2 class="text-xl font-bold text-slate-900">Payment Options</h2>
+                    <p class="text-xs text-slate-500">Select a payment method to complete your train reservation.</p>
+                </div>
+
+                <!-- Payment Methods Tabs -->
+                <div class="space-y-3">
+                    <label class="flex items-center justify-between p-3.5 border rounded-xl cursor-pointer hover:border-brand-500 transition bg-slate-50">
+                        <div class="flex items-center space-x-3">
+                            <input type="radio" name="pay-method" checked class="text-brand-600 focus:ring-brand-500">
+                            <i class="fa-solid fa-qrcode text-lg text-brand-600"></i>
+                            <span class="text-sm font-semibold">UPI / QR Code (Google Pay, PhonePe, Paytm)</span>
+                        </div>
+                        <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded">Fastest</span>
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 border rounded-xl cursor-pointer hover:border-brand-500 transition">
+                        <div class="flex items-center space-x-3">
+                            <input type="radio" name="pay-method" class="text-brand-600 focus:ring-brand-500">
+                            <i class="fa-solid fa-credit-card text-lg text-slate-600"></i>
+                            <span class="text-sm font-semibold">Credit / Debit Card</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center justify-between p-3.5 border rounded-xl cursor-pointer hover:border-brand-500 transition">
+                        <div class="flex items-center space-x-3">
+                            <input type="radio" name="pay-method" class="text-brand-600 focus:ring-brand-500">
+                            <i class="fa-solid fa-building-columns text-lg text-slate-600"></i>
+                            <span class="text-sm font-semibold">Net Banking</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="bg-brand-50 p-4 rounded-xl border border-brand-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-brand-800 font-medium block">Total Payable</span>
+                        <span class="text-2xl font-extrabold text-brand-900">₹<span id="pay-total-display">0</span></span>
+                    </div>
+                    <button onclick="app.processPayment()" id="pay-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-lg shadow-md transition flex items-center space-x-2">
+                        <i class="fa-solid fa-lock text-xs"></i>
+                        <span>Pay & Confirm Ticket</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: REALISTIC TRAIN TICKET DOWNLOAD / CONFIRMATION -->
+        <section id="section-ticket" class="hidden space-y-6 max-w-3xl mx-auto">
+            
+            <!-- Action Toolbar (No Print) -->
+            <div class="flex justify-between items-center no-print bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center space-x-2 text-emerald-600 font-bold">
+                    <i class="fa-solid fa-circle-check text-xl"></i>
+                    <span>Booking Confirmed!</span>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="window.print()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs px-4 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Print / Download Ticket PDF</span>
+                    </button>
+                    <button onclick="app.navigateTo('search')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-4 py-2 rounded-lg font-semibold transition">
+                        Book Another
+                    </button>
+                </div>
+            </div>
+
+            <!-- Realistic Train E-Ticket Container -->
+            <div id="printable-ticket" class="bg-white rounded-2xl border-2 border-slate-300 shadow-2xl overflow-hidden font-sans">
+                
+                <!-- Ticket Header -->
+                <div class="bg-brand-900 text-white p-6 border-b-4 border-amber-500 flex justify-between items-center">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-train text-2xl text-amber-400"></i>
+                            <span class="text-2xl font-black tracking-wider uppercase">ELECTRONIC RESERVATION SLIP</span>
+                        </div>
+                        <p class="text-xs text-brand-200 mt-1">RailExpress National Passenger Reservation System</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-brand-200 uppercase block font-semibold">PNR Number</span>
+                        <span id="ticket-pnr" class="text-xl font-mono font-bold tracking-widest text-amber-400">8429103847</span>
+                    </div>
+                </div>
+
+                <!-- Route Header Banner -->
+                <div class="bg-slate-100 p-4 border-b border-slate-200 grid grid-cols-3 text-center">
+                    <div class="text-left">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase block">From Station</span>
+                        <span id="ticket-from" class="text-base font-bold text-slate-800">NDLS - New Delhi</span>
+                        <span id="ticket-dep-time" class="text-xs block text-brand-700 font-semibold">16:55 Hrs</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 font-bold uppercase block">Journey Date</span>
+                        <span id="ticket-date" class="text-sm font-bold text-slate-900">24-Oct-2026</span>
+                        <span id="ticket-class" class="text-xs font-semibold text-slate-600 block">Class: 3A</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase block">To Station</span>
+                        <span id="ticket-to" class="text-base font-bold text-slate-800">BCT - Mumbai Central</span>
+                        <span id="ticket-arr-time" class="text-xs block text-brand-700 font-semibold">08:35 Hrs</span>
+                    </div>
+                </div>
+
+                <!-- Train & Transaction Info Table -->
+                <div class="p-6 space-y-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <span class="text-slate-500 block">Train No & Name</span>
+                            <span id="ticket-train-info" class="font-bold text-slate-800">12952 / Rajdhani Express</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block">Quota</span>
+                            <span class="font-bold text-slate-800">General (GN)</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block">Booking Date</span>
+                            <span id="ticket-booking-date" class="font-bold text-slate-800">Today</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block">Total Fare</span>
+                            <span id="ticket-total-fare" class="font-bold text-emerald-700">₹0</span>
+                        </div>
+                    </div>
+
+                    <!-- Passenger Details Grid -->
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Passenger Information</h4>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100 text-slate-700 font-semibold border-b">
+                                    <tr>
+                                        <th class="p-2.5">#</th>
+                                        <th class="p-2.5">Passenger Name</th>
+                                        <th class="p-2.5">Age / Gender</th>
+                                        <th class="p-2.5">Booking Status</th>
+                                        <th class="p-2.5">Coach / Seat / Berth</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticket-passenger-rows" class="divide-y divide-slate-200">
+                                    <!-- Dynamic Passenger Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Bar: QR Code Preview & Guidelines -->
+                    <div class="pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="text-[11px] text-slate-500 space-y-1">
+                            <p><strong>Important Instructions:</strong></p>
+                            <p>1. Valid ID proof (Aadhaar, Passport, Driving License) is mandatory during travel.</p>
+                            <p>2. Arrive at station at least 20 minutes prior to departure.</p>
+                        </div>
+                        <div class="flex items-center space-x-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <!-- Simulated Realistic QR Code -->
+                            <div class="w-16 h-16 bg-white border p-1 rounded flex items-center justify-center">
+                                <i class="fa-solid fa-qrcode text-4xl text-slate-800"></i>
+                            </div>
+                            <div class="text-[10px] text-slate-500">
+                                <p class="font-bold text-slate-700">Scan to Verify Ticket</p>
+                                <p>IRCTC Digital Verified</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Strip -->
+                <div class="bg-slate-800 text-slate-300 text-[10px] p-2.5 text-center">
+                    RailExpress System • Wish you a Happy and Safe Journey
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-6 mt-12 border-t border-slate-800 no-print">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p>© 2026 RailExpress Online Booking Systems. All rights reserved.</p>
+            <p class="text-slate-500">Designed for fast, accessible train seat reservations across all national railway networks.</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // Mock Train Database
+        const MOCK_TRAINS = [
+            {
+                number: "12952",
+                name: "Mumbai Rajdhani Express",
+                origin: "NDLS",
+                destination: "BCT",
+                depTime: "16:55",
+                arrTime: "08:35",
+                duration: "15h 40m",
+                classes: {
+                    "1A": { price: 3850, status: "AVAILABLE - 08" },
+                    "2A": { price: 2450, status: "AVAILABLE - 24" },
+                    "3A": { price: 1720, status: "AVAILABLE - 42" },
+                    "SL": { price: 610, status: "WL 12" }
+                }
+            },
+            {
+                number: "12002",
+                name: "Shatabdi Express",
+                origin: "NDLS",
+                destination: "BCT",
+                depTime: "06:00",
+                arrTime: "19:45",
+                duration: "13h 45m",
+                classes: {
+                    "1A": { price: 4100, status: "AVAILABLE - 15" },
+                    "2A": { price: 2600, status: "AVAILABLE - 30" },
+                    "3A": { price: 1850, status: "AVAILABLE - 50" },
+                    "SL": { price: 680, status: "AVAILABLE - 10" }
+                }
+            },
+            {
+                number: "12216",
+                name: "Garib Rath Express",
+                origin: "NDLS",
+                destination: "BCT",
+                depTime: "11:20",
+                arrTime: "04:15",
+                duration: "16h 55m",
+                classes: {
+                    "3A": { price: 1150, status: "AVAILABLE - 88" },
+                    "SL": { price: 450, status: "AVAILABLE - 120" }
+                }
+            },
+            {
+                number: "22222",
+                name: "Vande Bharat Express",
+                origin: "NDLS",
+                destination: "BCT",
+                depTime: "15:00",
+                arrTime: "02:15",
+                duration: "11h 15m",
+                classes: {
+                    "1A": { price: 4800, status: "AVAILABLE - 04" },
+                    "2A": { price: 3100, status: "AVAILABLE - 18" },
+                    "3A": { price: 2100, status: "AVAILABLE - 22" }
+                }
+            }
+        ];
+
+        // Central Application State Engine
+        class TrainBookingApp {
+            constructor() {
+                this.currentStep = 'search';
+                this.searchData = {};
+                this.selectedTrain = null;
+                this.selectedClass = '3A';
+                this.passengers = [];
+                this.selectedSeats = [];
+                this.promoDiscount = 0;
+                
+                this.init();
+            }
+
+            init() {
+                // Set default departure date to tomorrow
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('search-date').value = tomorrow.toISOString().split('T')[0];
+
+                // Initialize 1 default passenger slot
+                this.addPassenger();
+            }
+
+            // Navigation Routing Control
+            navigateTo(step) {
+                this.currentStep = step;
+                ['search', 'results', 'passengers', 'payment', 'ticket'].forEach(s => {
+                    const el = document.getElementById(`section-${s}`);
+                    if (el) el.classList.toggle('hidden', s !== step);
+
+                    const navEl = document.getElementById(`step-nav-${s}`);
+                    if (navEl) {
+                        if (s === step) {
+                            navEl.className = "flex items-center px-3 py-1.5 rounded-full bg-brand-800 text-brand-100 font-bold";
+                        } else {
+                            navEl.className = "flex items-center px-3 py-1.5 rounded-full text-slate-400";
+                        }
+                    }
+                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            swapStations() {
+                const orig = document.getElementById('search-origin');
+                const dest = document.getElementById('search-destination');
+                const temp = orig.value;
+                orig.value = dest.value;
+                dest.value = temp;
+            }
+
+            handleSearch(e) {
+                e.preventDefault();
+                const origin = document.getElementById('search-origin').value;
+                const dest = document.getElementById('search-destination').value;
+                const date = document.getElementById('search-date').value;
+
+                if (origin === dest) {
+                    alert("Origin and Destination cannot be the same station.");
+                    return;
+                }
+
+                this.searchData = { origin, dest, date };
+                
+                // Update UI text
+                document.getElementById('res-origin-name').innerText = origin;
+                document.getElementById('res-dest-name').innerText = dest;
+                document.getElementById('res-date-display').innerText = new Date(date).toDateString();
+                
+                this.renderTrains(MOCK_TRAINS);
+                this.navigateTo('results');
+            }
+
+            renderTrains(trains) {
+                const container = document.getElementById('trains-container');
+                container.innerHTML = '';
+                document.getElementById('res-count').innerText = trains.length;
+
+                trains.forEach(train => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition space-y-4";
+
+                    let classesHTML = '';
+                    Object.keys(train.classes).forEach(cls => {
+                        const classData = train.classes[cls];
+                        classesHTML += `
+                            <button onclick="app.selectTrainClass('${train.number}', '${cls}')" class="flex-1 min-w-[100px] border border-slate-200 rounded-lg p-2.5 text-left hover:border-brand-500 hover:bg-brand-50 transition group focus:ring-2 focus:ring-brand-500">
+                                <div class="flex justify-between items-center text-xs font-bold text-slate-700 group-hover:text-brand-700">
+                                    <span>${cls}</span>
+                                    <span>₹${classData.price}</span>
+                                </div>
+                                <div class="text-[10px] mt-1 font-semibold ${classData.status.includes('WL') ? 'text-amber-600' : 'text-emerald-600'}">
+                                    ${classData.status}
+                                </div>
+                            </button>
+                        `;
+                    });
+
+                    card.innerHTML = `
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded font-mono font-bold">#${train.number}</span>
+                                    <h3 class="text-base font-bold text-slate-900">${train.name}</h3>
+                                </div>
+                                <span class="text-xs text-slate-500">Runs On: Mon, Wed, Fri, Sun</span>
+                            </div>
+
+                            <!-- Route Timing visualization -->
+                            <div class="flex items-center space-x-4 text-center">
+                                <div>
+                                    <span class="text-base font-bold text-slate-900 block">${train.depTime}</span>
+                                    <span class="text-xs text-slate-500">${train.origin}</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-[10px] text-slate-400 font-medium">${train.duration}</span>
+                                    <div class="w-20 sm:w-28 h-0.5 bg-slate-300 relative my-1">
+                                        <div class="w-1.5 h-1.5 bg-brand-600 rounded-full absolute -top-0.5 left-0"></div>
+                                        <div class="w-1.5 h-1.5 bg-brand-600 rounded-full absolute -top-0.5 right-0"></div>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-600 font-semibold">Direct</span>
+                                </div>
+                                <div>
+                                    <span class="text-base font-bold text-slate-900 block">${train.arrTime}</span>
+                                    <span class="text-xs text-slate-500">${train.destination}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Class Selection Cards -->
+                        <div class="flex flex-wrap gap-2 pt-1">
+                            ${classesHTML}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            sortTrains(criteria) {
+                let sorted = [...MOCK_TRAINS];
+                if (criteria === 'duration') {
+                    sorted.sort((a, b) => parseInt(a.duration) - parseInt(b.duration));
+                } else if (criteria === 'departure') {
+                    sorted.sort((a, b) => a.depTime.localeCompare(b.depTime));
+                }
+                this.renderTrains(sorted);
+            }
+
+            selectTrainClass(trainNumber, className) {
+                this.selectedTrain = MOCK_TRAINS.find(t => t.number === trainNumber);
+                this.selectedClass = className;
+
+                // Update Summary Cards
+                document.getElementById('summary-train-number').innerText = `#${this.selectedTrain.number}`;
+                document.getElementById('summary-train-name').innerText = this.selectedTrain.name;
+                document.getElementById('summary-route').innerText = `${this.selectedTrain.origin} (${this.selectedTrain.depTime}) → ${this.selectedTrain.destination} (${this.selectedTrain.arrTime})`;
+                document.getElementById('summary-class').innerText = this.selectedClass;
+
+                this.renderSeatMap();
+                this.updateFareSummary();
+                this.navigateTo('passengers');
+            }
+
+            renderSeatMap() {
+                const seatGrid = document.getElementById('seat-grid');
+                seatGrid.innerHTML = '';
+                this.selectedSeats = [];
+
+                // Render 20 Interactive Seats
+                for (let i = 1; i <= 20; i++) {
+                    const isOccupied = (i === 3 || i === 7 || i === 12);
+                    const seatBtn = document.createElement('button');
+                    seatBtn.type = 'button';
+                    seatBtn.className = `p-2 text-xs font-bold rounded-lg border transition ${
+                        isOccupied ? 'bg-slate-300 text-slate-500 cursor-not-allowed border-slate-300' : 'bg-white text-slate-700 hover:border-brand-500 hover:bg-brand-50 border-slate-300'
+                    }`;
+                    seatBtn.innerText = `${i}`;
+                    
+                    if (!isOccupied) {
+                        seatBtn.onclick = () => this.toggleSeatSelection(i, seatBtn);
+                    }
+                    seatGrid.appendChild(seatBtn);
+                }
+            }
+
+            toggleSeatSelection(seatNum, element) {
+                const index = this.selectedSeats.indexOf(seatNum);
+                if (index > -1) {
+                    this.selectedSeats.splice(index, 1);
+                    element.className = 'p-2 text-xs font-bold rounded-lg border transition bg-white text-slate-700 hover:border-brand-500 hover:bg-brand-50 border-slate-300';
+                } else {
+                    if (this.selectedSeats.length >= this.passengers.length) {
+                        alert(`You can only select up to ${this.passengers.length} seat(s) based on your passenger count.`);
+                        return;
+                    }
+                    this.selectedSeats.push(seatNum);
+                    element.className = 'p-2 text-xs font-bold rounded-lg border transition bg-brand-600 text-white border-brand-600 shadow-sm';
+                }
+            }
+
+            addPassenger() {
+                const id = Date.now();
+                this.passengers.push({ id, name: '', age: '', gender: 'Male', berth: 'No Preference' });
+                this.renderPassengerInputs();
+                this.updateFareSummary();
+            }
+
+            removePassenger(id) {
+                if (this.passengers.length <= 1) {
+                    alert("At least one passenger is required.");
+                    return;
+                }
+                this.passengers = this.passengers.filter(p => p.id !== id);
+                this.renderPassengerInputs();
+                this.updateFareSummary();
+            }
+
+            renderPassengerInputs() {
+                const container = document.getElementById('passengers-list');
+                container.innerHTML = '';
+
+                this.passengers.forEach((p, index) => {
+                    const row = document.createElement('div');
+                    row.className = "grid grid-cols-1 sm:grid-cols-12 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 items-center";
+                    row.innerHTML = `
+                        <div class="sm:col-span-4">
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Passenger ${index + 1} Name</label>
+                            <input type="text" placeholder="Full Name" required value="${p.name}" onchange="app.passengers[${index}].name = this.value" class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-brand-500">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Age</label>
+                            <input type="number" min="1" max="120" placeholder="Age" required value="${p.age}" onchange="app.passengers[${index}].age = this.value" class="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs focus:ring-brand-500">
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Gender</label>
+                            <select onchange="app.passengers[${index}].gender = this.value" class="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-xs focus:ring-brand-500">
+                                <option value="Male" ${p.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                <option value="Female" ${p.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                <option value="Other" ${p.gender === 'Other' ? 'selected' : ''}>Other</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Berth</label>
+                            <select onchange="app.passengers[${index}].berth = this.value" class="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-xs focus:ring-brand-500">
+                                <option value="Lower">Lower</option>
+                                <option value="Middle">Middle</option>
+                                <option value="Upper">Upper</option>
+                                <option value="Side Lower">Side Lower</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-1 flex justify-end">
+                            <button type="button" onclick="app.removePassenger(${p.id})" class="text-rose-500 hover:text-rose-700 p-1.5 transition">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+
+            updateFareSummary() {
+                if (!this.selectedTrain) return;
+
+                const basePrice = this.selectedTrain.classes[this.selectedClass].price;
+                const count = this.passengers.length;
+                const totalBase = basePrice * count;
+                const tax = Math.round(totalBase * 0.05); // 5% Tax
+                const total = totalBase + tax - this.promoDiscount;
+
+                document.getElementById('fare-count').innerText = count;
+                document.getElementById('fare-base').innerText = totalBase.toLocaleString();
+                document.getElementById('fare-tax').innerText = tax.toLocaleString();
+                document.getElementById('fare-total').innerText = Math.max(0, total).toLocaleString();
+                document.getElementById('pay-total-display').innerText = Math.max(0, total).toLocaleString();
+            }
+
+            applyPromo() {
+                const code = document.getElementById('promo-input').value.trim().toUpperCase();
+                const msg = document.getElementById('promo-msg');
+                const row = document.getElementById('discount-row');
+
+                if (code === 'RAIL20') {
+                    this.promoDiscount = 300;
+                    document.getElementById('fare-discount').innerText = "300";
+                    row.classList.remove('hidden');
+                    msg.innerText = "Coupon RAIL20 applied! ₹300 Discount.";
+                    msg.className = "text-[11px] mt-1 text-emerald-600 font-semibold block";
+                } else {
+                    msg.innerText = "Invalid promo code. Try RAIL20.";
+                    msg.className = "text-[11px] mt-1 text-rose-600 font-semibold block";
+                }
+                this.updateFareSummary();
+            }
+
+            proceedToPayment() {
+                // Validate Passenger inputs
+                for (let p of this.passengers) {
+                    if (!p.name || !p.age) {
+                        alert("Please fill in all passenger details before proceeding.");
+                        return;
+                    }
+                }
+                this.navigateTo('payment');
+            }
+
+            processPayment() {
+                const btn = document.getElementById('pay-btn');
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Processing Payment...</span>`;
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-lock text-xs"></i> <span>Pay & Confirm Ticket</span>`;
+                    this.generateTicket();
+                    this.navigateTo('ticket');
+                }, 1500);
+            }
+
+            generateTicket() {
+                // Populate realistic printable ticket
+                document.getElementById('ticket-pnr').innerText = Math.floor(1000000000 + Math.random() * 9000000000);
+                document.getElementById('ticket-from').innerText = `${this.selectedTrain.origin}`;
+                document.getElementById('ticket-to').innerText = `${this.selectedTrain.destination}`;
+                document.getElementById('ticket-dep-time').innerText = `${this.selectedTrain.depTime} Hrs`;
+                document.getElementById('ticket-arr-time').innerText = `${this.selectedTrain.arrTime} Hrs`;
+                document.getElementById('ticket-date').innerText = this.searchData.date || '24-Oct-2026';
+                document.getElementById('ticket-class').innerText = `Class: ${this.selectedClass}`;
+                document.getElementById('ticket-train-info').innerText = `${this.selectedTrain.number} / ${this.selectedTrain.name}`;
+                document.getElementById('ticket-booking-date').innerText = new Date().toLocaleDateString();
+                document.getElementById('ticket-total-fare').innerText = `₹${document.getElementById('fare-total').innerText}`;
+
+                const passengerRows = document.getElementById('ticket-passenger-rows');
+                passengerRows.innerHTML = '';
+
+                this.passengers.forEach((p, idx) => {
+                    const seatAllocated = this.selectedSeats[idx] ? `Seat ${this.selectedSeats[idx]}` : `Seat ${10 + idx}`;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-2.5 font-bold">${idx + 1}</td>
+                        <td class="p-2.5 font-semibold text-slate-800">${p.name}</td>
+                        <td class="p-2.5">${p.age} Yrs / ${p.gender}</td>
+                        <td class="p-2.5"><span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">CNF (Confirmed)</span></td>
+                        <td class="p-2.5 font-mono font-bold text-slate-800">B4 / ${seatAllocated} / ${p.berth}</td>
+                    `;
+                    passengerRows.appendChild(row);
+                });
+            }
+        }
+
+        // Initialize App on DOM Ready
+        let app;
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new TrainBookingApp();
+        });
+    </script>
+</body>
+</html>
